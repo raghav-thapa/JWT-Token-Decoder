@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JWT Token Decoder</title>
+  <title>JWT Token Editor & Decoder</title>
   <style>
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       padding: 20px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -43,7 +43,6 @@
 
     textarea {
       width: 100%;
-      height: 120px;
       padding: 15px;
       border: 2px solid #e2e8f0;
       border-radius: 12px;
@@ -51,6 +50,16 @@
       font-size: 14px;
       resize: vertical;
       transition: all 0.3s ease;
+    }
+
+    .jwt-input {
+      height: 120px;
+    }
+
+    .edit-area {
+      height: 200px;
+      background: #1a202c;
+      color: #e2e8f0;
     }
 
     textarea:focus {
@@ -69,11 +78,23 @@
       cursor: pointer;
       transition: all 0.3s ease;
       font-size: 16px;
+      margin-right: 10px;
+      margin-bottom: 10px;
     }
 
     button:hover {
       transform: translateY(-2px);
       box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .secondary-btn {
+      background: linear-gradient(135deg, #38b2ac 0%, #319795 100%);
+    }
+
+    .copy-btn {
+      background: linear-gradient(135deg, #38a169 0%, #2f855a 100%);
+      font-size: 14px;
+      padding: 8px 16px;
     }
 
     .output-section {
@@ -102,10 +123,18 @@
       border-left-color: #4299e1;
     }
 
+    .generated-token {
+      background: #f7fafc;
+      border-left-color: #805ad5;
+    }
+
     .token-part h3 {
       margin: 0 0 15px 0;
       color: #2d3748;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
 
     pre {
@@ -116,22 +145,25 @@
       overflow-x: auto;
       font-size: 13px;
       line-height: 1.5;
+      margin: 0;
     }
 
-    .highlight {
-      background: #fef5e7;
+    .editable-json {
+      background: #1a202c;
+      color: #e2e8f0;
+      border: 2px solid #4a5568;
+      width: 100%;
+      min-height: 150px;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 13px;
       padding: 15px;
       border-radius: 8px;
-      border-left: 4px solid #ed8936;
-      margin-top: 15px;
+      resize: vertical;
     }
 
-    .scope-check {
-      background: #e6fffa;
-      padding: 15px;
-      border-radius: 8px;
-      border-left: 4px solid #38b2ac;
-      margin-top: 15px;
+    .editable-json:focus {
+      border-color: #667eea;
+      outline: none;
     }
 
     .error {
@@ -142,33 +174,94 @@
       border-left: 4px solid #e53e3e;
     }
 
-    .success {
-      color: #38a169;
-      font-weight: 600;
+    .warning {
+      background: #fef5e7;
+      color: #d69e2e;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #ed8936;
+      margin-top: 15px;
     }
 
-    .warning {
-      color: #d69e2e;
+    .info {
+      background: #ebf8ff;
+      color: #2b6cb0;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #4299e1;
+      margin-top: 15px;
+    }
+
+    .button-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .generated-token-display {
+      background: #1a202c;
+      color: #e2e8f0;
+      padding: 15px;
+      border-radius: 8px;
+      word-break: break-all;
+      font-family: 'Monaco', 'Menlo', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
       font-weight: 600;
+      color: #4a5568;
+      transition: all 0.3s ease;
+    }
+
+    .tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
     }
   </style>
 </head>
 
 <body>
   <div class="container">
-    <h1>🔐 JWT Token Decoder</h1>
+    <h1>🔐 JWT Token Editor & Decoder</h1>
 
     <div class="input-section">
-      <label for="jwtInput">Paste your JWT Token (from localStorage):</label>
-      <textarea id="jwtInput" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
+      <label for="jwtInput">Paste your JWT Token:</label>
+      <textarea id="jwtInput" class="jwt-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."></textarea>
       <br><br>
       <button onclick="decodeJWT()">🔍 Decode Token</button>
+      <button onclick="clearAll()" class="secondary-btn">🗑️ Clear All</button>
     </div>
 
     <div id="output" class="output-section"></div>
   </div>
 
   <script>
+    let currentHeader = null;
+    let currentPayload = null;
+    let originalSignature = null;
+
     function decodeJWT() {
       const token = document.getElementById('jwtInput').value.trim();
       const output = document.getElementById('output');
@@ -181,42 +274,198 @@
       try {
         const parts = token.split('.');
         if (parts.length !== 3) {
-          throw new Error('Invalid JWT format');
+          throw new Error('Invalid JWT format - JWT should have 3 parts separated by dots');
         }
 
-        const header = JSON.parse(atob(parts[0]));
-        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        // Decode header
+        currentHeader = JSON.parse(atob(parts[0]));
 
+        // Decode payload with proper base64url decoding
+        const payloadB64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const payloadPadded = payloadB64 + '='.repeat((4 - payloadB64.length % 4) % 4);
+        currentPayload = JSON.parse(atob(payloadPadded));
 
-        output.innerHTML = `
-                    <div class="token-part header">
-                        <h3>📋 Header</h3>
-                        <pre>${JSON.stringify(header, null, 2)}</pre>
-                    </div>
-                    
-                    <div class="token-part payload">
-                        <h3>📦 Payload</h3>
-                        <pre>${JSON.stringify(payload, null, 2)}</pre>
-                        
-        
+        originalSignature = parts[2];
 
-                    </div>
-                    
-                    <div class="token-part signature">
-                        <h3>🔏 Signature</h3>
-                        <p>Signature verification requires the secret key</p>
-                        <pre>${parts[2]}</pre>
-                    </div>
-                `;
+        displayDecodedToken();
 
       } catch (error) {
         output.innerHTML = `<div class="error">Error decoding JWT: ${error.message}</div>`;
       }
     }
 
+    function displayDecodedToken() {
+      const output = document.getElementById('output');
+
+      output.innerHTML = `
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('view')">👁️ View Mode</div>
+          <div class="tab" onclick="switchTab('edit')">✏️ Edit Mode</div>
+        </div>
+
+        <div id="view-mode" class="tab-content active">
+          <div class="token-part header">
+            <h3>📋 Header</h3>
+            <pre>${JSON.stringify(currentHeader, null, 2)}</pre>
+          </div>
+          
+          <div class="token-part payload">
+            <h3>📦 Payload</h3>
+            <pre>${JSON.stringify(currentPayload, null, 2)}</pre>
+            ${getTokenInfo()}
+          </div>
+          
+          <div class="token-part signature">
+            <h3>🔏 Original Signature</h3>
+            <p>Signature verification requires the secret key</p>
+            <pre>${originalSignature}</pre>
+          </div>
+        </div>
+
+        <div id="edit-mode" class="tab-content">
+          <div class="token-part header">
+            <h3>📋 Edit Header</h3>
+            <textarea id="headerEdit" class="editable-json">${JSON.stringify(currentHeader, null, 2)}</textarea>
+          </div>
+          
+          <div class="token-part payload">
+            <h3>📦 Edit Payload</h3>
+            <textarea id="payloadEdit" class="editable-json">${JSON.stringify(currentPayload, null, 2)}</textarea>
+          </div>
+
+          <div class="button-group">
+            <button onclick="generateToken()">🔨 Generate New Token</button>
+            <button onclick="resetEdits()" class="secondary-btn">↺ Reset Changes</button>
+          </div>
+
+          <div class="warning">
+            <strong>⚠️ Important:</strong> The generated token will have a dummy signature since we don't have access to the signing secret. The new token structure will be correct, but it won't pass signature verification.
+          </div>
+        </div>
+
+        <div id="generated-section" style="display: none;">
+          <div class="token-part generated-token">
+            <h3>
+              🆕 Generated Token
+              <button onclick="copyToken()" class="copy-btn">📋 Copy</button>
+            </h3>
+            <div id="generatedToken" class="generated-token-display"></div>
+            <div class="info">
+              <strong>ℹ️ Note:</strong> This token has been generated with your modifications but uses a dummy signature. It will not pass signature verification but maintains the correct JWT structure.
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function getTokenInfo() {
+      let info = '';
+
+
+      // Check not before
+      if (currentPayload.nbf) {
+        const nbfDate = new Date(currentPayload.nbf * 1000);
+        const now = new Date();
+        const notYetValid = nbfDate > now;
+
+        info += `<div class="${notYetValid ? 'warning' : 'info'}">
+          <strong>${notYetValid ? '⚠️ Not valid before:' : '✅ Valid since:'}</strong> ${nbfDate.toLocaleString()}
+        </div>`;
+      }
+
+      return info;
+    }
+
+    function switchTab(tab) {
+      // Update tab buttons
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelector(`.tab:nth-child(${tab === 'view' ? '1' : '2'})`).classList.add('active');
+
+      // Update tab content
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.getElementById(`${tab}-mode`).classList.add('active');
+    }
+
+    function resetEdits() {
+      document.getElementById('headerEdit').value = JSON.stringify(currentHeader, null, 2);
+      document.getElementById('payloadEdit').value = JSON.stringify(currentPayload, null, 2);
+    }
+
+    function generateToken() {
+      try {
+        // Parse edited JSON
+        const editedHeader = JSON.parse(document.getElementById('headerEdit').value);
+        const editedPayload = JSON.parse(document.getElementById('payloadEdit').value);
+
+        // Base64url encode
+        const headerB64 = base64UrlEncode(JSON.stringify(editedHeader));
+        const payloadB64 = base64UrlEncode(JSON.stringify(editedPayload));
+
+        // Create dummy signature (since we don't have the secret)
+        const dummySignature = base64UrlEncode('DUMMY_SIGNATURE_' + Date.now());
+
+        const newToken = `${headerB64}.${payloadB64}.${dummySignature}`;
+
+        // Display the generated token
+        document.getElementById('generatedToken').textContent = newToken;
+        document.getElementById('generated-section').style.display = 'block';
+
+        // Scroll to generated token
+        document.getElementById('generated-section').scrollIntoView({
+          behavior: 'smooth'
+        });
+
+      } catch (error) {
+        alert(`Error generating token: ${error.message}\n\nPlease check that your JSON is valid.`);
+      }
+    }
+
+    function base64UrlEncode(str) {
+      return btoa(unescape(encodeURIComponent(str)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+    }
+
+    function copyToken() {
+      const tokenText = document.getElementById('generatedToken').textContent;
+      navigator.clipboard.writeText(tokenText).then(() => {
+        const btn = document.querySelector('.copy-btn');
+        const originalText = btn.textContent;
+        btn.textContent = '✅ Copied!';
+        setTimeout(() => {
+          btn.textContent = originalText;
+        }, 2000);
+      }).catch(err => {
+        alert('Failed to copy token. Please select and copy manually.');
+      });
+    }
+
+    function clearAll() {
+      document.getElementById('jwtInput').value = '';
+      document.getElementById('output').innerHTML = '';
+      currentHeader = null;
+      currentPayload = null;
+      originalSignature = null;
+    }
+
     // Auto-decode if there's content in the textarea
     document.getElementById('jwtInput').addEventListener('paste', function() {
       setTimeout(decodeJWT, 100);
+    });
+
+    // Add some helpful keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          if (document.getElementById('edit-mode').classList.contains('active')) {
+            generateToken();
+          } else {
+            decodeJWT();
+          }
+        }
+      }
     });
   </script>
 </body>
